@@ -78,18 +78,11 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
       
       {/* App Branding */}
-      <div className="glow-card" style={{ padding: '0.75rem', background: 'linear-gradient(135deg, #151518, #0a0a0c)', display: 'flex', justifyContent: 'center' }}>
+      <div className="glow-card logo-card">
         <img 
           src={`${import.meta.env.BASE_URL}logo.jpg`} 
           alt="HT Habit Tracker Logo" 
-          style={{ 
-            width: '100%', 
-            maxHeight: '150px', 
-            objectFit: 'contain',
-            borderRadius: '8px',
-            border: '1px solid rgba(239, 68, 68, 0.15)',
-            boxShadow: '0 0 10px rgba(239, 68, 68, 0.1)'
-          }} 
+          className="logo-img"
         />
       </div>
 
