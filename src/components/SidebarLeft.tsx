@@ -75,7 +75,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
+    <div className="sidebar-wrapper">
       
       {/* App Branding */}
       <div className="glow-card logo-card">
@@ -84,10 +84,11 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
           alt="HT Habit Tracker Logo" 
           className="logo-img"
         />
+        <h1 className="logo-text">Habit Tracker</h1>
       </div>
 
       {/* User Stats Card */}
-      <div className="glow-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="glow-card profile-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         
         {/* Profile Details */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
@@ -244,7 +245,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
       </div>
 
       {/* Achievements Shelf */}
-      <div className="glow-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', flex: 1 }}>
+      <div className="glow-card achievements-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', flex: 1 }}>
         <div>
           <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-main)' }}>Achievements</h3>
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Earn medals by checking habits</span>

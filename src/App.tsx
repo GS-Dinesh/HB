@@ -541,7 +541,7 @@ export default function App() {
       <main className="main-content-area">
         
         {/* Dashboard Header Banner */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header className="main-header">
           <div>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <LayoutDashboard size={22} style={{ color: 'var(--primary-red)' }} /> Annual Habit Tracker
@@ -560,51 +560,63 @@ export default function App() {
         </header>
 
         {/* top row statistics cards */}
-        <MetricRow 
-          currentStreak={currentStreak} 
-          bestStreak={bestStreak} 
-          completedChecks={completedChecks} 
-          totalChecks={totalPossibleChecks} 
-          activeHabitsCount={habits.length} 
-        />
+        <div className="metrics-row-wrapper">
+          <MetricRow 
+            currentStreak={currentStreak} 
+            bestStreak={bestStreak} 
+            completedChecks={completedChecks} 
+            totalChecks={totalPossibleChecks} 
+            activeHabitsCount={habits.length} 
+          />
+        </div>
 
         {/* Split Grid Area */}
         <div className="split-columns-grid">
           
           {/* Main Grid: Checklist & Daily Progress Bar Chart */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <DailyProgressBarChart 
-              days={days} 
-              habits={habits} 
-              completions={completions} 
-            />
-            <HabitChecklistGrid 
-              habits={habits} 
-              days={days} 
-              completions={completions} 
-              onToggleCheck={handleToggleCheck} 
-              onAddDay={handleAddDay} 
-              onDeleteHabit={handleDeleteHabit} 
-              onDeleteDay={handleDeleteDay}
-            />
+          <div className="main-left-column">
+            <div className="daily-progress-card">
+              <DailyProgressBarChart 
+                days={days} 
+                habits={habits} 
+                completions={completions} 
+              />
+            </div>
+            <div className="checklist-card">
+              <HabitChecklistGrid 
+                habits={habits} 
+                days={days} 
+                completions={completions} 
+                onToggleCheck={handleToggleCheck} 
+                onAddDay={handleAddDay} 
+                onDeleteHabit={handleDeleteHabit} 
+                onDeleteDay={handleDeleteDay}
+              />
+            </div>
           </div>
 
           {/* Right Column: Doughnut overall rate, Analysis list, Top habits list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <OverallStatsDoughnut 
-              completed={completedChecks} 
-              total={totalPossibleChecks} 
-            />
-            <HabitAnalysisList 
-              habits={habits} 
-              days={days} 
-              completions={completions} 
-            />
-            <TopHabitsList 
-              habits={habits} 
-              days={days} 
-              completions={completions} 
-            />
+          <div className="main-right-column">
+            <div className="overall-stats-card">
+              <OverallStatsDoughnut 
+                completed={completedChecks} 
+                total={totalPossibleChecks} 
+              />
+            </div>
+            <div className="analysis-card">
+              <HabitAnalysisList 
+                habits={habits} 
+                days={days} 
+                completions={completions} 
+              />
+            </div>
+            <div className="top-habits-card">
+              <TopHabitsList 
+                habits={habits} 
+                days={days} 
+                completions={completions} 
+              />
+            </div>
           </div>
 
         </div>
