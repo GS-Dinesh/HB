@@ -523,7 +523,7 @@ export default function App() {
       {/* Left Column (Sticky Sidebar) */}
       <aside className="sidebar-aside">
         <SidebarLeft 
-          username={stats.username || 'useer'}
+          username={stats.username || 'Player'}
           avatar={stats.avatar || ''}
           onUpdateProfile={(name, avatarVal) => {
             setStats(prev => ({ ...prev, username: name, avatar: avatarVal }));
