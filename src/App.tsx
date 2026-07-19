@@ -116,7 +116,7 @@ export default function App() {
     return localStorage.getItem('hg_user_email') || '';
   });
 
-  const [isGoogleLoginOpen, setIsGoogleLoginOpen] = useState(false);
+  const [isGoogleLoginOpen, setIsGoogleLoginOpen] = useState(true);
 
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'simulation' | 'offline'>('offline');
@@ -242,6 +242,7 @@ export default function App() {
         setCurrentUser(user);
         setUserEmail(user.email || '');
         setSyncStatus('syncing');
+        setIsGoogleLoginOpen(false);
 
         try {
           const cloudData = await fetchUserData(user.uid);
