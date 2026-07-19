@@ -191,36 +191,91 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
               <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {username}
               </h4>
-              <span style={{ fontSize: '0.65rem', color: userEmail ? 'var(--primary-red)' : 'var(--text-muted)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={userEmail || 'Guest Mode'}>
-                {userEmail || 'Active Player (Guest)'}
+              <span style={{ 
+                fontSize: '0.65rem', 
+                color: userEmail ? 'var(--primary-red)' : 'var(--difficulty-easy)', 
+                display: 'block', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis', 
+                whiteSpace: 'nowrap',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.02em'
+              }} title={userEmail || 'Guest Mode'}>
+                {userEmail ? `Google: ${userEmail}` : 'Guest Mode (Local)'}
               </span>
               
-              {/* Cloud Sync Status Indicator */}
-              <div style={{ 
-                marginTop: '0.25rem', 
-                fontSize: '0.6rem', 
-                fontWeight: 700, 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.25rem',
-                color: syncStatus === 'synced' ? 'var(--difficulty-easy)' : 
-                       syncStatus === 'syncing' ? 'var(--difficulty-medium)' : 
-                       syncStatus === 'simulation' ? '#38bdf8' : 'var(--text-dark)'
-              }}>
-                <span style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: syncStatus === 'synced' ? 'var(--difficulty-easy)' : 
-                                   syncStatus === 'syncing' ? 'var(--difficulty-medium)' : 
-                                   syncStatus === 'simulation' ? '#38bdf8' : 'var(--text-dark)',
-                  display: 'inline-block',
-                  boxShadow: syncStatus === 'synced' ? '0 0 6px var(--difficulty-easy)' : 'none'
-                }}></span>
-                {syncStatus === 'synced' && 'Cloud Synced (Firebase)'}
-                {syncStatus === 'syncing' && 'Syncing to Firebase...'}
-                {syncStatus === 'simulation' && 'Simulated Profile'}
-                {syncStatus === 'offline' && 'Offline Guest Mode'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.2rem' }}>
+                {userEmail ? (
+                  <button 
+                    onClick={onLogout}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.6rem',
+                      fontWeight: 850,
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      transition: 'color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <button 
+                    onClick={onLoginClick}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.6rem',
+                      fontWeight: 850,
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      transition: 'color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                  >
+                    Sign In
+                  </button>
+                )}
+
+                <span style={{ color: 'var(--text-dark)', fontSize: '0.6rem' }}>|</span>
+
+                {/* Cloud Sync Status Indicator */}
+                <div style={{ 
+                  fontSize: '0.6rem', 
+                  fontWeight: 700, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.2rem',
+                  color: syncStatus === 'synced' ? 'var(--difficulty-easy)' : 
+                         syncStatus === 'syncing' ? 'var(--difficulty-medium)' : 
+                         syncStatus === 'simulation' ? '#38bdf8' : 'var(--text-dark)'
+                }}>
+                  <span style={{
+                    width: '5px',
+                    height: '5px',
+                    borderRadius: '50%',
+                    backgroundColor: syncStatus === 'synced' ? 'var(--difficulty-easy)' : 
+                                     syncStatus === 'syncing' ? 'var(--difficulty-medium)' : 
+                                     syncStatus === 'simulation' ? '#38bdf8' : 'var(--text-dark)',
+                    display: 'inline-block',
+                    boxShadow: syncStatus === 'synced' ? '0 0 4px var(--difficulty-easy)' : 'none'
+                  }}></span>
+                  {syncStatus === 'synced' && 'Synced'}
+                  {syncStatus === 'syncing' && 'Syncing...'}
+                  {syncStatus === 'simulation' && 'Simulated'}
+                  {syncStatus === 'offline' && 'Offline'}
+                </div>
               </div>
               
               <button 
@@ -279,112 +334,6 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
         </div>
 
         <hr style={{ borderColor: 'var(--border-color)', margin: '0' }} />
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          {/* Option 1: Guest Mode */}
-          <button
-            onClick={() => {
-              if (userEmail) {
-                onLogout();
-              }
-            }}
-            disabled={!userEmail}
-            style={{
-              width: '100%',
-              padding: '0.45rem 0.6rem',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: !userEmail ? 'var(--difficulty-easy)' : 'var(--text-muted)',
-              backgroundColor: !userEmail ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-              border: !userEmail ? '1px solid var(--difficulty-easy)' : '1px solid var(--border-color)',
-              borderRadius: '6px',
-              cursor: userEmail ? 'pointer' : 'default',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span>Guest Mode (Local Cookies)</span>
-            {!userEmail && (
-              <span style={{ 
-                fontSize: '0.55rem', 
-                padding: '0.05rem 0.25rem', 
-                backgroundColor: 'var(--difficulty-easy)', 
-                color: '#000', 
-                borderRadius: '4px', 
-                fontWeight: 800 
-              }}>
-                ACTIVE
-              </span>
-            )}
-          </button>
-
-          {/* Option 2: Sign In with Google */}
-          <button
-            onClick={() => {
-              if (!userEmail) {
-                onLoginClick();
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '0.45rem 0.6rem',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: userEmail ? 'var(--primary-red)' : 'var(--text-main)',
-              backgroundColor: userEmail ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255, 255, 255, 0.05)',
-              border: userEmail ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border-color)',
-              borderRadius: '6px',
-              cursor: !userEmail ? 'pointer' : 'default',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
-              {userEmail ? `Google: ${userEmail}` : 'Sign In with Google'}
-            </span>
-            {userEmail && (
-              <span style={{ 
-                fontSize: '0.55rem', 
-                padding: '0.05rem 0.25rem', 
-                backgroundColor: 'var(--primary-red)', 
-                color: '#fff', 
-                borderRadius: '4px', 
-                fontWeight: 800 
-              }}>
-                ACTIVE
-              </span>
-            )}
-          </button>
-
-          {/* Option 3: Logout */}
-          {userEmail && (
-            <button
-              onClick={onLogout}
-              className="btn-secondary"
-              style={{
-                width: '100%',
-                padding: '0.45rem 0.6rem',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                borderColor: 'var(--border-color)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem',
-                transition: 'all 0.2s'
-              }}
-            >
-              <X size={12} /> Logout
-            </button>
-          )}
-        </div>
 
       </div>
 
