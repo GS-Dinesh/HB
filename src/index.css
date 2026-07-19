@@ -250,8 +250,45 @@ body {
     order: 2;
   }
   
-  .main-header {
+  .mobile-action-buttons {
+    display: flex !important;
+    gap: 0.75rem;
     order: 3;
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .mobile-action-buttons button {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .desktop-action-buttons {
+    display: none !important;
+  }
+  
+  .checklist-card {
+    order: 4;
+  }
+  
+  .daily-progress-card {
+    order: 5;
+  }
+  
+  .achievements-card {
+    order: 6;
+  }
+  
+  .overall-stats-card {
+    order: 7;
+  }
+  
+  .metrics-row-wrapper {
+    order: 8;
+  }
+  
+  .main-header {
+    order: 9;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
@@ -262,32 +299,12 @@ body {
     width: 100%;
   }
   
-  .metrics-row-wrapper {
-    order: 4;
-  }
-  
-  .checklist-card {
-    order: 5;
-  }
-  
-  .daily-progress-card {
-    order: 6;
-  }
-  
-  .achievements-card {
-    order: 7;
-  }
-  
-  .overall-stats-card {
-    order: 8;
-  }
-  
   .analysis-card {
-    order: 9;
+    order: 10;
   }
   
   .top-habits-card {
-    order: 10;
+    order: 11;
   }
 }
 
@@ -579,4 +596,68 @@ body {
   background: linear-gradient(90deg, #ef4444, #f87171);
   border-radius: 3px;
   transition: width 0.3s ease;
+}
+
+/* Mobile Action Buttons defaults */
+.mobile-action-buttons {
+  display: none;
+}
+
+/* Custom Checkbox State Badges */
+.checkmark-completed {
+  height: 22px;
+  width: 22px;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--difficulty-easy);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--difficulty-easy);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
+.checkmark-missed {
+  height: 22px;
+  width: 22px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--difficulty-hard);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--difficulty-hard);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+}
+
+.checkmark-locked {
+  height: 22px;
+  width: 22px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dark);
+}
+
+/* Pulsing border animation for today's checkbox */
+.animate-pulse-border {
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0% {
+    border-color: var(--border-color);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    border-color: var(--primary-red);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    border-color: var(--border-color);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2);
+  }
 }

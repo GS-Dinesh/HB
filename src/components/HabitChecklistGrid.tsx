@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Trash2, Plus, Check, X } from 'lucide-react';
+import { Flame, Trash2, Check, X, Lock } from 'lucide-react';
 
 interface Habit {
   id: string;
@@ -13,9 +13,8 @@ interface HabitChecklistGridProps {
   days: string[];
   completions: Record<string, Record<string, boolean>>;
   onToggleCheck: (habitId: string, day: string) => void;
-  onAddDay: () => void;
   onDeleteHabit: (habitId: string) => void;
-  onDeleteDay: (day: string) => void;
+  startDate: string;
 }
 
 export const HabitChecklistGrid: React.FC<HabitChecklistGridProps> = ({
@@ -23,10 +22,40 @@ export const HabitChecklistGrid: React.FC<HabitChecklistGridProps> = ({
   days,
   completions,
   onToggleCheck,
-  onAddDay,
   onDeleteHabit,
-  onDeleteDay,
+  startDate,
 }) => {
+  // Live Timer state
+  const [timeRemaining, setTimeRemaining] = React.useState('');
+
+  React.useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date();
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const diff = end.getTime() - now.getTime();
+      if (diff <= 0) {
+        setTimeRemaining('00:00:00');
+        return;
+      }
+      const hrs = String(Math.floor(diff / 3600000)).padStart(2, '0');
+      const mins = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+      const secs = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+      setTimeRemaining(`${hrs}:${mins}:${secs}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate todayIndex based on startDate
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffMs = now.getTime() - start.getTime();
+  const todayIndex = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
   
   // Calculate current streak and max streak for a habit
   const calculateStreak = (habitId: string) => {
@@ -45,24 +74,29 @@ export const HabitChecklistGrid: React.FC<HabitChecklistGridProps> = ({
       }
     }
 
-    // Current Streak: Consecutive checked days counting backwards from the latest checked day
-    let lastCheckedIdx = -1;
-    for (let i = days.length - 1; i >= 0; i--) {
-      if (completions[habitId]?.[days[i]]) {
-        lastCheckedIdx = i;
-        break;
-      }
+    // Current Streak counting backwards from today index
+    let startIdx = todayIndex;
+    if (startIdx >= days.length) {
+      startIdx = days.length - 1;
     }
-
-    if (lastCheckedIdx !== -1) {
-      // If the last checked day is close to the end (allow 1 day buffer for new columns)
-      if (lastCheckedIdx >= days.length - 2) {
-        for (let i = lastCheckedIdx; i >= 0; i--) {
-          if (completions[habitId]?.[days[i]]) {
-            current++;
-          } else {
-            break;
-          }
+    
+    const isTodayChecked = completions[habitId]?.[days[startIdx]] || false;
+    const isYesterdayChecked = startIdx > 0 ? completions[habitId]?.[days[startIdx - 1]] || false : false;
+    
+    if (isTodayChecked) {
+      for (let i = startIdx; i >= 0; i--) {
+        if (completions[habitId]?.[days[i]]) {
+          current++;
+        } else {
+          break;
+        }
+      }
+    } else if (isYesterdayChecked) {
+      for (let i = startIdx - 1; i >= 0; i--) {
+        if (completions[habitId]?.[days[i]]) {
+          current++;
+        } else {
+          break;
         }
       }
     }
@@ -82,11 +116,18 @@ export const HabitChecklistGrid: React.FC<HabitChecklistGridProps> = ({
       }}>
         <div>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-main)' }}>Habit Checklist</h3>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Manually add habits and track progress daily</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {todayIndex < days.length ? (
+              <>
+                Active: <span style={{ color: 'var(--primary-red)', fontWeight: 700 }}>{days[todayIndex]}</span>
+                <span style={{ color: 'var(--text-dark)' }}>|</span>
+                Ends in: <span style={{ color: 'var(--primary-red)', fontWeight: 700, fontFamily: 'monospace' }}>{timeRemaining}</span>
+              </>
+            ) : (
+              <span style={{ color: 'var(--difficulty-easy)', fontWeight: 700 }}>21-day program completed!</span>
+            )}
+          </span>
         </div>
-        <button className="btn-secondary" onClick={onAddDay} style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}>
-          <Plus size={14} /> Add Day Column
-        </button>
       </div>
 
       {/* Grid container with Horizontal Scroll */}
@@ -103,41 +144,30 @@ export const HabitChecklistGrid: React.FC<HabitChecklistGridProps> = ({
                 <th style={{ padding: '1rem 1.5rem', width: '220px', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.05em' }}>Habit</th>
                 
                 {/* Scrollable Day Columns */}
-                {days.map(day => (
-                  <th key={day} style={{ 
-                    padding: '0.75rem 0.5rem', 
-                    textAlign: 'center', 
-                    fontSize: '0.75rem', 
-                    color: 'var(--text-muted)', 
-                    fontWeight: 700,
-                    width: '65px',
-                    minWidth: '65px'
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
-                      <span>{day}</span>
-                      <button 
-                        onClick={() => onDeleteDay(day)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-dark)',
-                          cursor: 'pointer',
-                          padding: '2px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '4px',
-                          transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-dark)'}
-                        title={`Delete ${day}`}
-                      >
-                        <X size={10} strokeWidth={3} />
-                      </button>
-                    </div>
-                  </th>
-                ))}
+                {days.map((day, idx) => {
+                  const isActive = idx === todayIndex;
+                  return (
+                    <th key={day} style={{ 
+                      padding: '0.75rem 0.5rem', 
+                      textAlign: 'center', 
+                      fontSize: '0.75rem', 
+                      color: isActive ? 'var(--primary-red)' : 'var(--text-muted)', 
+                      fontWeight: 700,
+                      width: '65px',
+                      minWidth: '65px',
+                      backgroundColor: isActive ? 'rgba(239, 68, 68, 0.03)' : 'transparent'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
+                        <span>{day}</span>
+                        {isActive && (
+                          <span style={{ fontSize: '0.55rem', color: 'var(--primary-red)', textTransform: 'uppercase', fontWeight: 800 }}>
+                            Today
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
                 
                 {/* Streaks and Actions */}
                 <th style={{ padding: '1rem 1rem', textAlign: 'center', width: '90px', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Streak</th>
@@ -165,20 +195,47 @@ export const HabitChecklistGrid: React.FC<HabitChecklistGridProps> = ({
                     </td>
                     
                     {/* Checkboxes per day */}
-                    {days.map(day => {
+                    {days.map((day, idx) => {
                       const isChecked = completions[habit.id]?.[day] || false;
+                      const isPast = idx < todayIndex;
+                      const isToday = idx === todayIndex;
+
                       return (
-                        <td key={day} style={{ textAlign: 'center', verticalAlign: 'middle', padding: '0.5rem' }}>
-                          <label className="checkbox-container">
-                            <input 
-                              type="checkbox" 
-                              checked={isChecked} 
-                              onChange={() => onToggleCheck(habit.id, day)}
-                            />
-                            <span className="checkmark">
-                              <Check />
-                            </span>
-                          </label>
+                        <td 
+                          key={day} 
+                          style={{ 
+                            textAlign: 'center', 
+                            verticalAlign: 'middle', 
+                            padding: '0.5rem',
+                            backgroundColor: isToday ? 'rgba(239, 68, 68, 0.01)' : 'transparent'
+                          }}
+                        >
+                          {isPast ? (
+                            isChecked ? (
+                              <div className="checkmark-completed" title="Completed">
+                                <Check size={14} strokeWidth={3} />
+                              </div>
+                            ) : (
+                              <div className="checkmark-missed" title="Missed">
+                                <X size={14} strokeWidth={3} />
+                              </div>
+                            )
+                          ) : isToday ? (
+                            <label className="checkbox-container">
+                              <input 
+                                type="checkbox" 
+                                checked={isChecked} 
+                                onChange={() => onToggleCheck(habit.id, day)}
+                              />
+                              <span className="checkmark animate-pulse-border">
+                                <Check />
+                              </span>
+                            </label>
+                          ) : (
+                            <div className="checkmark-locked" title="Locked (Future day)">
+                              <Lock size={12} strokeWidth={2.5} style={{ opacity: 0.5 }} />
+                            </div>
+                          )}
                         </td>
                       );
                     })}

@@ -35,7 +35,7 @@ interface UserStats {
 
 const DEFAULT_HABITS: Habit[] = [];
 
-const DEFAULT_DAYS = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'];
+const DEFAULT_DAYS = Array.from({ length: 21 }, (_, i) => `Day ${i + 1}`);
 
 export default function App() {
   // Load State from Cookies (with LocalStorage fallback)
@@ -104,6 +104,17 @@ export default function App() {
     }
   });
 
+  const [startDate, setStartDate] = useState<string>(() => {
+    const cookieSaved = getCookie('hg_start_date');
+    if (cookieSaved) return cookieSaved;
+    const saved = localStorage.getItem('hg_start_date');
+    if (saved) return saved;
+    const nowStr = new Date().toISOString();
+    setCookie('hg_start_date', nowStr);
+    localStorage.setItem('hg_start_date', nowStr);
+    return nowStr;
+  });
+
   // UI state
   const [isNewUser, setIsNewUser] = useState<boolean>(() => {
     const cookieSaved = getCookie('hg_stats');
@@ -162,6 +173,11 @@ export default function App() {
     setCookie('hg_stats', serialized);
     localStorage.setItem('hg_stats', serialized);
   }, [stats]);
+
+  useEffect(() => {
+    setCookie('hg_start_date', startDate);
+    localStorage.setItem('hg_start_date', startDate);
+  }, [startDate]);
 
   // Total possible checklist slots
   const totalPossibleChecks = habits.length * days.length;
@@ -265,11 +281,7 @@ export default function App() {
     setHabits(prev => [...prev, newHabit]);
   };
 
-  // Add Day Action
-  const handleAddDay = () => {
-    const nextDayNum = days.length + 1;
-    setDays(prev => [...prev, `Day ${nextDayNum}`]);
-  };
+
 
   // Delete Habit Action
   const handleDeleteHabit = (id: string) => {
@@ -289,32 +301,22 @@ export default function App() {
     });
   };
 
-  // Delete Day Action
-  const handleDeleteDay = (dayName: string) => {
-    setConfirmState({
-      isOpen: true,
-      title: 'Delete Day Column',
-      message: `Are you sure you want to delete ${dayName}? This will clear all checked progress for this day.`,
-      onConfirm: () => {
-        setDays(prev => prev.filter(d => d !== dayName));
-        setCompletions(prev => {
-          const updated = { ...prev };
-          for (const habitId in updated) {
-            if (updated[habitId]) {
-              const habitComps = { ...updated[habitId] };
-              delete habitComps[dayName];
-              updated[habitId] = habitComps;
-            }
-          }
-          return updated;
-        });
-        setConfirmState(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  };
+
 
   // Toggle Check Action & XP System
   const handleToggleCheck = (habitId: string, day: string) => {
+    const dayIndex = days.indexOf(day);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diffTime = now.getTime() - start.getTime();
+    const todayIndex = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+    if (dayIndex !== todayIndex) {
+      return;
+    }
+
     const isNowChecked = !(completions[habitId]?.[day] || false);
     
     // Play synthesis sound
@@ -504,11 +506,14 @@ export default function App() {
           username: '',
           avatar: ''
         });
+        const nowStr = new Date().toISOString();
+        setStartDate(nowStr);
         localStorage.clear();
         eraseCookie('hg_habits');
         eraseCookie('hg_days');
         eraseCookie('hg_completions');
         eraseCookie('hg_stats');
+        eraseCookie('hg_start_date');
         setConfirmState(prev => ({ ...prev, isOpen: false }));
         setTimeout(() => {
           window.location.reload();
@@ -540,6 +545,16 @@ export default function App() {
       {/* Main Layout Area */}
       <main className="main-content-area">
         
+        {/* Mobile Action Buttons (Visible only on mobile) */}
+        <div className="mobile-action-buttons">
+          <button className="btn-secondary" onClick={handleResetData} style={{ fontSize: '0.75rem' }}>
+            <RefreshCw size={14} /> Reset Data
+          </button>
+          <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>
+            <Plus size={16} /> Add Habit
+          </button>
+        </div>
+
         {/* Dashboard Header Banner */}
         <header className="main-header">
           <div>
@@ -549,7 +564,7 @@ export default function App() {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Analyze and track habits over custom sequential intervals.</span>
           </div>
           
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div className="desktop-action-buttons" style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn-secondary" onClick={handleResetData} style={{ fontSize: '0.75rem' }}>
               <RefreshCw size={14} /> Reset Data
             </button>
@@ -588,9 +603,8 @@ export default function App() {
                 days={days} 
                 completions={completions} 
                 onToggleCheck={handleToggleCheck} 
-                onAddDay={handleAddDay} 
                 onDeleteHabit={handleDeleteHabit} 
-                onDeleteDay={handleDeleteDay}
+                startDate={startDate}
               />
             </div>
           </div>
