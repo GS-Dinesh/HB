@@ -11,6 +11,7 @@ import { ModalAddHabit } from './components/ModalAddHabit';
 import { ModalAchievement } from './components/ModalAchievement';
 import { ModalOnboarding } from './components/ModalOnboarding';
 import { ModalConfirm } from './components/ModalConfirm';
+import { ModalGoogleLogin } from './components/ModalGoogleLogin';
 import { ACHIEVEMENTS_LIST } from './utils/achievements';
 import type { Achievement } from './utils/achievements';
 import { audio } from './utils/audio';
@@ -104,6 +105,14 @@ export default function App() {
     return nowStr;
   });
 
+  const [userEmail, setUserEmail] = useState<string>(() => {
+    const cookieSaved = getCookie('hg_user_email');
+    if (cookieSaved) return cookieSaved;
+    return localStorage.getItem('hg_user_email') || '';
+  });
+
+  const [isGoogleLoginOpen, setIsGoogleLoginOpen] = useState(false);
+
   // UI state
   const [isNewUser, setIsNewUser] = useState<boolean>(() => {
     const cookieSaved = getCookie('hg_stats');
@@ -138,31 +147,85 @@ export default function App() {
     onConfirm: () => {},
   });
 
+  // Sync user email
+  useEffect(() => {
+    setCookie('hg_user_email', userEmail);
+    localStorage.setItem('hg_user_email', userEmail);
+  }, [userEmail]);
+
+  // Effect to load data when user account switches
+  useEffect(() => {
+    const emailSuffix = userEmail;
+    
+    // Habits
+    const habitsKey = emailSuffix ? `hg_habits_${emailSuffix}` : 'hg_habits';
+    const savedHabits = getCookie(habitsKey) || localStorage.getItem(habitsKey);
+    setHabits(savedHabits ? JSON.parse(savedHabits) : DEFAULT_HABITS);
+
+    // Completions
+    const completionsKey = emailSuffix ? `hg_completions_${emailSuffix}` : 'hg_completions';
+    const savedCompletions = getCookie(completionsKey) || localStorage.getItem(completionsKey);
+    setCompletions(savedCompletions ? JSON.parse(savedCompletions) : {});
+
+    // Stats
+    const statsKey = emailSuffix ? `hg_stats_${emailSuffix}` : 'hg_stats';
+    const savedStats = getCookie(statsKey) || localStorage.getItem(statsKey);
+    const defaultStats = { 
+      xp: 0, 
+      level: 1, 
+      totalCredits: 0, 
+      unlockedAchievements: [],
+      username: '',
+      avatar: ''
+    };
+    if (savedStats) {
+      try {
+        setStats({ ...defaultStats, ...JSON.parse(savedStats) });
+      } catch (e) {
+        setStats(defaultStats);
+      }
+    } else {
+      setStats(defaultStats);
+    }
+
+    // Start Date
+    const startKey = emailSuffix ? `hg_start_date_${emailSuffix}` : 'hg_start_date';
+    const savedStart = getCookie(startKey) || localStorage.getItem(startKey);
+    if (savedStart) {
+      setStartDate(savedStart);
+    } else {
+      const nowStr = new Date().toISOString();
+      setStartDate(nowStr);
+    }
+  }, [userEmail]);
+
   // Sync to Cookies and LocalStorage on changes
   useEffect(() => {
     const serialized = JSON.stringify(habits);
-    setCookie('hg_habits', serialized);
-    localStorage.setItem('hg_habits', serialized);
-  }, [habits]);
-
-
+    const habitsKey = userEmail ? `hg_habits_${userEmail}` : 'hg_habits';
+    setCookie(habitsKey, serialized);
+    localStorage.setItem(habitsKey, serialized);
+  }, [habits, userEmail]);
 
   useEffect(() => {
     const serialized = JSON.stringify(completions);
-    setCookie('hg_completions', serialized);
-    localStorage.setItem('hg_completions', serialized);
-  }, [completions]);
+    const completionsKey = userEmail ? `hg_completions_${userEmail}` : 'hg_completions';
+    setCookie(completionsKey, serialized);
+    localStorage.setItem(completionsKey, serialized);
+  }, [completions, userEmail]);
 
   useEffect(() => {
     const serialized = JSON.stringify(stats);
-    setCookie('hg_stats', serialized);
-    localStorage.setItem('hg_stats', serialized);
-  }, [stats]);
+    const statsKey = userEmail ? `hg_stats_${userEmail}` : 'hg_stats';
+    setCookie(statsKey, serialized);
+    localStorage.setItem(statsKey, serialized);
+  }, [stats, userEmail]);
 
   useEffect(() => {
-    setCookie('hg_start_date', startDate);
-    localStorage.setItem('hg_start_date', startDate);
-  }, [startDate]);
+    const startKey = userEmail ? `hg_start_date_${userEmail}` : 'hg_start_date';
+    setCookie(startKey, startDate);
+    localStorage.setItem(startKey, startDate);
+  }, [startDate, userEmail]);
 
   // Total possible checklist slots
   const totalPossibleChecks = habits.length * days.length;
@@ -473,6 +536,24 @@ export default function App() {
     checkAchievements();
   }, [completions, habits, days, stats.unlockedAchievements, stats.totalCredits, completedChecks]);
 
+  const handleLogin = (email: string, name: string, avatar: string) => {
+    const statsKey = `hg_stats_${email}`;
+    const saved = getCookie(statsKey) || localStorage.getItem(statsKey);
+    if (!saved) {
+      const initialStats = {
+        xp: 0,
+        level: 1,
+        totalCredits: 0,
+        unlockedAchievements: [],
+        username: name,
+        avatar: avatar
+      };
+      localStorage.setItem(statsKey, JSON.stringify(initialStats));
+      setCookie(statsKey, JSON.stringify(initialStats));
+    }
+    setUserEmail(email);
+  };
+
   // Reset Application Action
   const handleResetData = () => {
     setConfirmState({
@@ -493,12 +574,21 @@ export default function App() {
         });
         const nowStr = new Date().toISOString();
         setStartDate(nowStr);
-        localStorage.clear();
-        eraseCookie('hg_habits');
-        eraseCookie('hg_days');
-        eraseCookie('hg_completions');
-        eraseCookie('hg_stats');
-        eraseCookie('hg_start_date');
+        
+        const habitsKey = userEmail ? `hg_habits_${userEmail}` : 'hg_habits';
+        const completionsKey = userEmail ? `hg_completions_${userEmail}` : 'hg_completions';
+        const statsKey = userEmail ? `hg_stats_${userEmail}` : 'hg_stats';
+        const startKey = userEmail ? `hg_start_date_${userEmail}` : 'hg_start_date';
+
+        eraseCookie(habitsKey);
+        eraseCookie(completionsKey);
+        eraseCookie(statsKey);
+        eraseCookie(startKey);
+        localStorage.removeItem(habitsKey);
+        localStorage.removeItem(completionsKey);
+        localStorage.removeItem(statsKey);
+        localStorage.removeItem(startKey);
+
         setConfirmState(prev => ({ ...prev, isOpen: false }));
         setTimeout(() => {
           window.location.reload();
@@ -523,7 +613,12 @@ export default function App() {
           xpNeeded={stats.level * 150} 
           totalCredits={stats.totalCredits} 
           achievements={ACHIEVEMENTS_LIST} 
-          unlockedIds={stats.unlockedAchievements} 
+          unlockedIds={stats.unlockedAchievements}
+          userEmail={userEmail}
+          onLoginClick={() => setIsGoogleLoginOpen(true)}
+          onLogout={() => {
+            setUserEmail('');
+          }}
         />
       </aside>
 
@@ -646,6 +741,12 @@ export default function App() {
         message={confirmState.message}
         onConfirm={confirmState.onConfirm}
         onCancel={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      <ModalGoogleLogin 
+        isOpen={isGoogleLoginOpen}
+        onClose={() => setIsGoogleLoginOpen(false)}
+        onLogin={handleLogin}
       />
 
     </div>
