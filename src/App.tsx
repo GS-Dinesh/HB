@@ -52,18 +52,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : DEFAULT_HABITS;
   });
 
-  const [days, setDays] = useState<string[]>(() => {
-    const cookieSaved = getCookie('hg_days');
-    if (cookieSaved) {
-      try {
-        return JSON.parse(cookieSaved);
-      } catch (e) {
-        console.error('Failed to parse days cookie:', e);
-      }
-    }
-    const saved = localStorage.getItem('hg_days');
-    return saved ? JSON.parse(saved) : DEFAULT_DAYS;
-  });
+  const days = DEFAULT_DAYS;
 
   const [completions, setCompletions] = useState<Record<string, Record<string, boolean>>>(() => {
     const cookieSaved = getCookie('hg_completions');
@@ -156,11 +145,7 @@ export default function App() {
     localStorage.setItem('hg_habits', serialized);
   }, [habits]);
 
-  useEffect(() => {
-    const serialized = JSON.stringify(days);
-    setCookie('hg_days', serialized);
-    localStorage.setItem('hg_days', serialized);
-  }, [days]);
+
 
   useEffect(() => {
     const serialized = JSON.stringify(completions);
@@ -496,7 +481,7 @@ export default function App() {
       message: 'Reset all habit tracking data? This cannot be undone.',
       onConfirm: () => {
         setHabits(DEFAULT_HABITS);
-        setDays(DEFAULT_DAYS);
+
         setCompletions({});
         setStats({ 
           xp: 0, 
