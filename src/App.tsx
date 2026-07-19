@@ -18,6 +18,11 @@ import { audio } from './utils/audio';
 import { triggerConfetti } from './utils/confetti';
 import { Plus, RefreshCw, LayoutDashboard } from 'lucide-react';
 
+// Firebase integrations
+import { auth, signInWithPopup, googleProvider, fetchUserData, saveUserData, signOut } from './utils/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
+
 interface Habit {
   id: string;
   name: string;
@@ -112,6 +117,9 @@ export default function App() {
   });
 
   const [isGoogleLoginOpen, setIsGoogleLoginOpen] = useState(false);
+
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'simulation' | 'offline'>('offline');
 
   // UI state
   const [isNewUser, setIsNewUser] = useState<boolean>(() => {
@@ -226,6 +234,82 @@ export default function App() {
     setCookie(startKey, startDate);
     localStorage.setItem(startKey, startDate);
   }, [startDate, userEmail]);
+
+  // Firebase auth state change listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        setUserEmail(user.email || '');
+        setSyncStatus('syncing');
+
+        try {
+          const cloudData = await fetchUserData(user.uid);
+          if (cloudData) {
+            if (cloudData.habits) setHabits(cloudData.habits);
+            if (cloudData.completions) setCompletions(cloudData.completions);
+            if (cloudData.stats) setStats(cloudData.stats);
+            if (cloudData.startDate) setStartDate(cloudData.startDate);
+          } else {
+            // Initial upload to create the profile document
+            const initialProfile = {
+              habits: habits.length > 0 ? habits : [],
+              completions: completions,
+              stats: {
+                xp: stats.xp,
+                level: stats.level,
+                totalCredits: stats.totalCredits,
+                unlockedAchievements: stats.unlockedAchievements,
+                username: user.displayName || user.email?.split('@')[0] || 'Player',
+                avatar: user.photoURL || stats.avatar
+              },
+              startDate: startDate
+            };
+            await saveUserData(user.uid, initialProfile);
+            setStats(prev => ({
+              ...prev,
+              username: user.displayName || prev.username,
+              avatar: user.photoURL || prev.avatar
+            }));
+          }
+          setSyncStatus('synced');
+        } catch (err) {
+          console.error("Failed to load Firebase data:", err);
+          setSyncStatus('offline');
+        }
+      } else {
+        setCurrentUser(null);
+        setUserEmail('');
+        setSyncStatus('offline');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Debounce Auto-Sync to Firebase Firestore
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const syncTimeout = setTimeout(async () => {
+      try {
+        setSyncStatus('syncing');
+        const currentProgress = {
+          habits,
+          completions,
+          stats,
+          startDate
+        };
+        await saveUserData(currentUser.uid, currentProgress);
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error("Error auto-saving to Firebase:", err);
+        setSyncStatus('offline');
+      }
+    }, 1500);
+
+    return () => clearTimeout(syncTimeout);
+  }, [habits, completions, stats, startDate, currentUser]);
 
   // Total possible checklist slots
   const totalPossibleChecks = habits.length * days.length;
@@ -536,22 +620,21 @@ export default function App() {
     checkAchievements();
   }, [completions, habits, days, stats.unlockedAchievements, stats.totalCredits, completedChecks]);
 
-  const handleLogin = (email: string, name: string, avatar: string) => {
-    const statsKey = `hg_stats_${email}`;
-    const saved = getCookie(statsKey) || localStorage.getItem(statsKey);
-    if (!saved) {
-      const initialStats = {
-        xp: 0,
-        level: 1,
-        totalCredits: 0,
-        unlockedAchievements: [],
-        username: name,
-        avatar: avatar
-      };
-      localStorage.setItem(statsKey, JSON.stringify(initialStats));
-      setCookie(statsKey, JSON.stringify(initialStats));
+  const handleGoogleLogin = async () => {
+    try {
+      setSyncStatus('syncing');
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      console.error("Firebase Sign-In popup error:", err);
+      alert(`Sign In failed: ${err.message}`);
+      setSyncStatus('offline');
     }
-    setUserEmail(email);
+  };
+
+  const handleContinueAsGuest = () => {
+    signOut(auth).catch(console.error);
+    setUserEmail('');
+    setSyncStatus('offline');
   };
 
   // Reset Application Action
@@ -560,9 +643,8 @@ export default function App() {
       isOpen: true,
       title: 'Reset Application Data',
       message: 'Reset all habit tracking data? This cannot be undone.',
-      onConfirm: () => {
+      onConfirm: async () => {
         setHabits(DEFAULT_HABITS);
-
         setCompletions({});
         setStats({ 
           xp: 0, 
@@ -575,19 +657,39 @@ export default function App() {
         const nowStr = new Date().toISOString();
         setStartDate(nowStr);
         
-        const habitsKey = userEmail ? `hg_habits_${userEmail}` : 'hg_habits';
-        const completionsKey = userEmail ? `hg_completions_${userEmail}` : 'hg_completions';
-        const statsKey = userEmail ? `hg_stats_${userEmail}` : 'hg_stats';
-        const startKey = userEmail ? `hg_start_date_${userEmail}` : 'hg_start_date';
+        if (currentUser) {
+          try {
+            await saveUserData(currentUser.uid, {
+              habits: [],
+              completions: {},
+              stats: {
+                xp: 0,
+                level: 1,
+                totalCredits: 0,
+                unlockedAchievements: [],
+                username: currentUser.displayName || 'Player',
+                avatar: currentUser.photoURL || ''
+              },
+              startDate: nowStr
+            });
+          } catch (err) {
+            console.error("Failed to reset Firestore user document:", err);
+          }
+        } else {
+          const habitsKey = 'hg_habits';
+          const completionsKey = 'hg_completions';
+          const statsKey = 'hg_stats';
+          const startKey = 'hg_start_date';
 
-        eraseCookie(habitsKey);
-        eraseCookie(completionsKey);
-        eraseCookie(statsKey);
-        eraseCookie(startKey);
-        localStorage.removeItem(habitsKey);
-        localStorage.removeItem(completionsKey);
-        localStorage.removeItem(statsKey);
-        localStorage.removeItem(startKey);
+          eraseCookie(habitsKey);
+          eraseCookie(completionsKey);
+          eraseCookie(statsKey);
+          eraseCookie(startKey);
+          localStorage.removeItem(habitsKey);
+          localStorage.removeItem(completionsKey);
+          localStorage.removeItem(statsKey);
+          localStorage.removeItem(startKey);
+        }
 
         setConfirmState(prev => ({ ...prev, isOpen: false }));
         setTimeout(() => {
@@ -616,9 +718,8 @@ export default function App() {
           unlockedIds={stats.unlockedAchievements}
           userEmail={userEmail}
           onLoginClick={() => setIsGoogleLoginOpen(true)}
-          onLogout={() => {
-            setUserEmail('');
-          }}
+          onLogout={handleContinueAsGuest}
+          syncStatus={syncStatus}
         />
       </aside>
 
@@ -746,7 +847,8 @@ export default function App() {
       <ModalGoogleLogin 
         isOpen={isGoogleLoginOpen}
         onClose={() => setIsGoogleLoginOpen(false)}
-        onLogin={handleLogin}
+        onGoogleLogin={handleGoogleLogin}
+        onContinueAsGuest={handleContinueAsGuest}
       />
 
     </div>

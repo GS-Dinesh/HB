@@ -16,6 +16,7 @@ interface SidebarLeftProps {
   userEmail: string;
   onLoginClick: () => void;
   onLogout: () => void;
+  syncStatus: 'synced' | 'syncing' | 'simulation' | 'offline';
 }
 
 const renderIcon = (iconName: string, size = 18) => {
@@ -43,6 +44,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
   userEmail,
   onLoginClick,
   onLogout,
+  syncStatus,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(username);
@@ -192,6 +194,34 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
               <span style={{ fontSize: '0.65rem', color: userEmail ? 'var(--primary-red)' : 'var(--text-muted)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={userEmail || 'Guest Mode'}>
                 {userEmail || 'Active Player (Guest)'}
               </span>
+              
+              {/* Cloud Sync Status Indicator */}
+              <div style={{ 
+                marginTop: '0.25rem', 
+                fontSize: '0.6rem', 
+                fontWeight: 700, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.25rem',
+                color: syncStatus === 'synced' ? 'var(--difficulty-easy)' : 
+                       syncStatus === 'syncing' ? 'var(--difficulty-medium)' : 
+                       syncStatus === 'simulation' ? '#38bdf8' : 'var(--text-dark)'
+              }}>
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: syncStatus === 'synced' ? 'var(--difficulty-easy)' : 
+                                   syncStatus === 'syncing' ? 'var(--difficulty-medium)' : 
+                                   syncStatus === 'simulation' ? '#38bdf8' : 'var(--text-dark)',
+                  display: 'inline-block',
+                  boxShadow: syncStatus === 'synced' ? '0 0 6px var(--difficulty-easy)' : 'none'
+                }}></span>
+                {syncStatus === 'synced' && 'Cloud Synced (Firebase)'}
+                {syncStatus === 'syncing' && 'Syncing to Firebase...'}
+                {syncStatus === 'simulation' && 'Simulated Profile'}
+                {syncStatus === 'offline' && 'Offline Guest Mode'}
+              </div>
               
               <button 
                 onClick={() => setIsEditing(true)}
