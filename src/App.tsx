@@ -164,26 +164,39 @@ export default function App() {
   // Effect to load data when user account switches
   useEffect(() => {
     const emailSuffix = userEmail;
+    if (!emailSuffix) {
+      setHabits([]);
+      setCompletions({});
+      setStats({
+        xp: 0, 
+        level: 1, 
+        totalCredits: 0, 
+        unlockedAchievements: [],
+        username: 'Player',
+        avatar: ''
+      });
+      return;
+    }
     
-    // Habits
-    const habitsKey = emailSuffix ? `hg_habits_${emailSuffix}` : 'hg_habits';
+    // Habits per registered Email
+    const habitsKey = `hg_habits_${emailSuffix}`;
     const savedHabits = getCookie(habitsKey) || localStorage.getItem(habitsKey);
-    setHabits(savedHabits ? JSON.parse(savedHabits) : DEFAULT_HABITS);
+    setHabits(savedHabits ? JSON.parse(savedHabits) : []);
 
-    // Completions
-    const completionsKey = emailSuffix ? `hg_completions_${emailSuffix}` : 'hg_completions';
+    // Activity Completions per registered Email
+    const completionsKey = `hg_completions_${emailSuffix}`;
     const savedCompletions = getCookie(completionsKey) || localStorage.getItem(completionsKey);
     setCompletions(savedCompletions ? JSON.parse(savedCompletions) : {});
 
-    // Stats
-    const statsKey = emailSuffix ? `hg_stats_${emailSuffix}` : 'hg_stats';
+    // Stats & XP per registered Email
+    const statsKey = `hg_stats_${emailSuffix}`;
     const savedStats = getCookie(statsKey) || localStorage.getItem(statsKey);
     const defaultStats = { 
       xp: 0, 
       level: 1, 
       totalCredits: 0, 
       unlockedAchievements: [],
-      username: '',
+      username: emailSuffix.split('@')[0] || 'Player',
       avatar: ''
     };
     if (savedStats) {
@@ -196,8 +209,8 @@ export default function App() {
       setStats(defaultStats);
     }
 
-    // Start Date
-    const startKey = emailSuffix ? `hg_start_date_${emailSuffix}` : 'hg_start_date';
+    // Start Date per registered Email
+    const startKey = `hg_start_date_${emailSuffix}`;
     const savedStart = getCookie(startKey) || localStorage.getItem(startKey);
     if (savedStart) {
       setStartDate(savedStart);
