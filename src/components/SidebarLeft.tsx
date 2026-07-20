@@ -201,8 +201,8 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.02em'
-              }} title={userEmail || 'Guest Mode'}>
-                {userEmail ? `Google: ${userEmail}` : 'Guest Mode (Local)'}
+              }} title={userEmail || 'Local Profile'}>
+                {userEmail ? `Google: ${userEmail}` : 'Local Profile'}
               </span>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.2rem' }}>
