@@ -125,6 +125,8 @@ export const GlassLoginForm: React.FC<GlassLoginFormProps> = ({
         err.code === 'auth/invalid-email'
       ) {
         errorText = 'Wrong Email ID or Password.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        errorText = 'Email/Password sign-in is disabled in Firebase Console. Please enable Email/Password under Authentication > Sign-in method.';
       } else if (err.code === 'auth/email-already-in-use') {
         errorText = 'An account with this Email already exists.';
       } else if (err.code === 'auth/weak-password') {
