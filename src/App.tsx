@@ -282,6 +282,7 @@ export default function App() {
         setCurrentUser(null);
         setUserEmail('');
         setSyncStatus('offline');
+        setIsGoogleLoginOpen(true);
       }
     });
 
@@ -636,6 +637,7 @@ export default function App() {
     signOut(auth).catch(console.error);
     setUserEmail('');
     setSyncStatus('offline');
+    setIsGoogleLoginOpen(true);
   };
 
   // Reset Application Action
