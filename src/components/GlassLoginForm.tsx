@@ -1,5 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { Eye, EyeOff, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  auth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  updateProfile 
+} from '../utils/firebase';
 
 interface GlassLoginFormProps {
   isOpen: boolean;
@@ -29,33 +35,87 @@ export const GlassLoginForm: React.FC<GlassLoginFormProps> = ({
 
   if (!isOpen) return null;
 
-  // Form Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
+  // Firebase Form Submit Handler
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setToastMessage(null);
 
-    if (!email || !password) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       triggerError('Please enter both Email and Password.');
+      return;
+    }
+
+    if (isSignUp && !username.trim()) {
+      triggerError('Please enter a Username.');
       return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setToastMessage({
-        type: 'success',
-        text: isSignUp ? 'Registration successful!' : 'Signed in successfully!'
-      });
+    try {
+      if (isSignUp) {
+        // Register new user with Firebase Authentication
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+        
+        // Update user profile display name if username provided
+        if (username.trim()) {
+          await updateProfile(userCredential.user, {
+            displayName: username.trim()
+          });
+        }
+
+        setToastMessage({
+          type: 'success',
+          text: 'Account registered successfully! Opening app...'
+        });
+      } else {
+        // Sign In existing user with Firebase Authentication
+        await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+        
+        setToastMessage({
+          type: 'success',
+          text: 'Signed in successfully! Opening app...'
+        });
+      }
 
       if (onSuccessLogin) {
-        onSuccessLogin(email);
+        onSuccessLogin(cleanEmail);
       }
 
       setTimeout(() => {
+        setIsLoading(false);
         onClose();
-      }, 1000);
-    }, 1000);
+      }, 800);
+
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error('Firebase Auth Error:', err.code, err.message);
+
+      // Map Firebase Auth error codes to user-friendly messages
+      let errorText = 'Authentication failed. Please try again.';
+      
+      if (
+        err.code === 'auth/user-not-found' || 
+        err.code === 'auth/wrong-password' || 
+        err.code === 'auth/invalid-credential' ||
+        err.code === 'auth/invalid-email'
+      ) {
+        errorText = 'Wrong Email ID or Password.';
+      } else if (err.code === 'auth/email-already-in-use') {
+        errorText = 'An account with this Email already exists.';
+      } else if (err.code === 'auth/weak-password') {
+        errorText = 'Password should be at least 6 characters.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorText = 'Too many failed attempts. Please try again later.';
+      } else if (err.message) {
+        errorText = err.message.replace('Firebase: ', '');
+      }
+
+      triggerError(errorText);
+    }
   };
 
   const triggerError = (msg: string) => {
@@ -73,7 +133,7 @@ export const GlassLoginForm: React.FC<GlassLoginFormProps> = ({
         <div className="glass-orb glass-orb-2"></div>
       </div>
 
-      {/* Main Glass Card (Matching User Image 2) */}
+      {/* Main Dark Red Glass Card */}
       <div 
         ref={cardRef}
         className={`glass-card-image2 ${isShaking ? 'glass-card-shake' : ''}`}
@@ -83,7 +143,7 @@ export const GlassLoginForm: React.FC<GlassLoginFormProps> = ({
           <X size={18} />
         </button>
 
-        {/* Habit Tracker Logo & Brand Branding */}
+        {/* Habit Tracker Logo & Branding Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <img 
             src={`${import.meta.env.BASE_URL}logo.jpg`} 
@@ -217,11 +277,11 @@ export const GlassLoginForm: React.FC<GlassLoginFormProps> = ({
             </div>
           )}
 
-          {/* White Capsule "Log in" Submit Button */}
+          {/* Primary Red Gradient Submit Button */}
           <button type="submit" className="glass-img2-submit-btn" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Processing...
+                <Loader2 size={18} className="animate-spin" /> Authenticating...
               </>
             ) : (
               isSignUp ? 'Register' : 'Log in'
