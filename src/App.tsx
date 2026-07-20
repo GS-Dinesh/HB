@@ -19,7 +19,7 @@ import { triggerConfetti } from './utils/confetti';
 import { Plus, RefreshCw, LayoutDashboard } from 'lucide-react';
 
 // Firebase integrations
-import { auth, signInWithPopup, googleProvider, fetchUserData, saveUserData, signOut } from './utils/firebase';
+import { auth, signInWithPopup, googleProvider, fetchUserData, saveUserData, subscribeToUserData, signOut } from './utils/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 
@@ -248,9 +248,16 @@ export default function App() {
     localStorage.setItem(startKey, startDate);
   }, [startDate, userEmail]);
 
-  // Firebase auth state change listener
+  // Firebase auth state change & real-time cross-device listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeFirestore: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+        unsubscribeFirestore = null;
+      }
+
       if (user) {
         setCurrentUser(user);
         setUserEmail(user.email || '');
@@ -258,6 +265,7 @@ export default function App() {
         setIsGoogleLoginOpen(false);
 
         try {
+          // 1. Initial Cloud Data Fetch
           const cloudData = await fetchUserData(user.uid);
           if (cloudData) {
             if (cloudData.habits) setHabits(cloudData.habits);
@@ -287,6 +295,18 @@ export default function App() {
             }));
           }
           setSyncStatus('synced');
+
+          // 2. Real-time Cross-Device Listener (syncs actions live across devices using same Email/Password)
+          unsubscribeFirestore = subscribeToUserData(user.uid, (realtimeData) => {
+            if (realtimeData) {
+              if (realtimeData.habits) setHabits(realtimeData.habits);
+              if (realtimeData.completions) setCompletions(realtimeData.completions);
+              if (realtimeData.stats) setStats(realtimeData.stats);
+              if (realtimeData.startDate) setStartDate(realtimeData.startDate);
+              setSyncStatus('synced');
+            }
+          });
+
         } catch (err) {
           console.error("Failed to load Firebase data:", err);
           setSyncStatus('offline');
@@ -299,7 +319,10 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeFirestore) unsubscribeFirestore();
+    };
   }, []);
 
   // Debounce Auto-Sync to Firebase Firestore

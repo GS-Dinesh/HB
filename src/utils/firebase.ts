@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile
 } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD8RVBp-T0eir7dbbB7ZiNF-QkEdLU4z6k",
@@ -41,6 +41,18 @@ export async function fetchUserData(uid: string): Promise<any | null> {
     return docSnap.data();
   }
   return null;
+}
+
+// Real-time Firestore Sync Listener across all devices
+export function subscribeToUserData(uid: string, callback: (data: any) => void) {
+  const docRef = doc(db, "user_progress", uid);
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data());
+    }
+  }, (err) => {
+    console.error("Realtime Firestore listener error:", err);
+  });
 }
 
 export { 
