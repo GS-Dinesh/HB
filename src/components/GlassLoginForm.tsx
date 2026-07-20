@@ -4,7 +4,8 @@ import {
   auth, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  updateProfile 
+  updateProfile,
+  saveUserData 
 } from '../utils/firebase';
 
 interface GlassLoginFormProps {
@@ -57,19 +58,39 @@ export const GlassLoginForm: React.FC<GlassLoginFormProps> = ({
 
     try {
       if (isSignUp) {
-        // Register new user with Firebase Authentication
+        // 1. Register new user with Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPassword);
         
-        // Update user profile display name if username provided
+        // 2. Update user profile display name if username provided
         if (username.trim()) {
           await updateProfile(userCredential.user, {
             displayName: username.trim()
           });
         }
 
+        // 3. Save initial user record in Firebase Firestore database
+        try {
+          await saveUserData(userCredential.user.uid, {
+            email: cleanEmail,
+            habits: [],
+            completions: {},
+            stats: {
+              xp: 0,
+              level: 1,
+              totalCredits: 0,
+              unlockedAchievements: [],
+              username: username.trim() || cleanEmail.split('@')[0] || 'Player',
+              avatar: ''
+            },
+            startDate: new Date().toISOString()
+          });
+        } catch (dbErr) {
+          console.warn("Firestore initial document creation warning:", dbErr);
+        }
+
         setToastMessage({
           type: 'success',
-          text: 'Account registered successfully! Opening app...'
+          text: 'Account registered in Firebase! Opening app...'
         });
       } else {
         // Sign In existing user with Firebase Authentication
