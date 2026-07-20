@@ -202,7 +202,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                 textTransform: 'uppercase',
                 letterSpacing: '0.02em'
               }} title={userEmail || 'Local Profile'}>
-                {userEmail ? `Google: ${userEmail}` : 'Local Profile'}
+                {userEmail ? userEmail : 'Local Profile'}
               </span>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.2rem' }}>
